@@ -1,14 +1,14 @@
-const totalPoints = 500;
+const totalPoints = 850;
 const MOVE_SPEED = 5;
 const BOID_LENGTH = 8;
 const BOID_WIDTH = 5;
 
-const FOV = 5*Math.PI/4;
-const NEARBY_RADIUS = 150;
+const FOV = 3*Math.PI/4;
+const NEARBY_RADIUS = 300;
 
-const SEPARATION_STRENGTH = 0.025;
-const ALIGNMENT_STRENGTH = 0.025;
-const COHESION_STRENGTH = 0.025;
+const SEPARATION_STRENGTH = 0.075;
+const ALIGNMENT_STRENGTH = 0.04;
+const COHESION_STRENGTH = 0.04;
 
 let SCREEN_WIDTH = 0;
 let SCREEN_HEIGHT = 0;
@@ -21,6 +21,10 @@ const drawCircle = (x, y, d) => circle(x, SCREEN_HEIGHT-y, d);
 const drawArc = (x, y, w, h, startAngle, stopAngle) => arc(x, SCREEN_HEIGHT - y, w, h, 2*Math.PI-stopAngle, 2*Math.PI-startAngle);
 
 
+let pointSeparation = {};
+let pointAlignment = {};
+let pointCohesion = {};
+
 // Initial Setup
 function setup() {
 	SCREEN_WIDTH = window.innerWidth - 20;
@@ -32,10 +36,10 @@ function setup() {
 		POINT_LIST.push(new Point(SCREEN_WIDTH, SCREEN_HEIGHT, MOVE_SPEED, i));
 	}
 
-	frameRate(30);
+	frameRate(40);
 }
 
-function draw() {
+async function draw() {
 	// Draw background & set Rectangle draw mode
 	background(255);
 	rectMode(CENTER);
@@ -47,20 +51,13 @@ function draw() {
 
 	fill(255,255,255,80);
 
-	let pointSeparation = {};
-	let pointAlignment = {};
-	let pointCohesion = {};
+	// Clear all the objects storing the changes to be made
+	pointSeparation = {};
+	pointAlignment = {};
+	pointCohesion = {};
+	avoidMouse = {};
 
 	POINT_LIST.forEach((currentPoint, currentIndex) => {
-		// Debugging
-		// if (currentIndex === 0) {
-		// 	drawBoid(currentPoint, true);
-		// 	drawLineToNearby(currentPoint);
-		// } else {
-		// 	drawBoid(currentPoint, false);
-		// 	// drawPoint(currentPoint);
-		// }
-
 		// Draw this boid to the screen
 		drawBoid(currentPoint, false);
 
@@ -71,6 +68,7 @@ function draw() {
 		pointSeparation[currentIndex] = getSeparation(currentPoint, boidsInFov);
 		pointAlignment[currentIndex] = getAlignment(boidsInFov);
 		pointCohesion[currentIndex] = getCohesion(currentPoint, boidsInFov);
+		avoidMouse[currentIndex] = awayFromMouse(currentPoint, boidsInFov);
 	});
 
 	// Update Direction & Position
@@ -78,6 +76,7 @@ function draw() {
 		currentPoint.changeDirection(pointSeparation[currentIndex].x, pointSeparation[currentIndex].y);
 		currentPoint.changeDirection(pointAlignment[currentIndex].x, pointAlignment[currentIndex].y);
 		currentPoint.changeDirection(pointCohesion[currentIndex].x, pointCohesion[currentIndex].y);
+		currentPoint.changeDirection(avoidMouse[currentIndex].x, avoidMouse[currentIndex].y);
 
 		currentPoint.update();
 	});
@@ -178,6 +177,23 @@ const findClosestPointToPoint = (targetPoint, pointList) => {
 	})
 	
 	return pointList[minPointIndex];
+}
+
+const awayFromMouse = (pointObject) => {
+	let distanceFromMouse = distanceBetweenPoints(pointObject, { position: { x: mouseX, y: SCREEN_HEIGHT-mouseY } });
+
+	if (distanceFromMouse > NEARBY_RADIUS) return { x: 0, y: 0 };
+
+	let directionToMove = {
+		x: pointObject.position.x - mouseX,
+		y: pointObject.position.y - (SCREEN_HEIGHT-mouseY)
+	};
+
+	let length = Math.sqrt(directionToMove.x ** 2 + directionToMove.y ** 2);
+	directionToMove.x *= 0.1 / length;
+	directionToMove.y *= 0.1 / length;
+
+	return directionToMove;
 }
 
 const getSeparation = (pointObject, nearbyPoints) => {
