@@ -1,5 +1,5 @@
-const totalPoints = 850;
-const MOVE_SPEED = 5;
+const totalPoints = 500;
+const MOVE_SPEED = 2;
 const BOID_LENGTH = 8;
 const BOID_WIDTH = 5;
 
@@ -8,7 +8,9 @@ const NEARBY_RADIUS = 300;
 
 const SEPARATION_STRENGTH = 0.075;
 const ALIGNMENT_STRENGTH = 0.04;
-const COHESION_STRENGTH = 0.04;
+const COHESION_STRENGTH = 0.06;
+const MOUSE_STRENGTH = 0.15;
+const WALL_STRENGTH = 2;
 
 let SCREEN_WIDTH = 0;
 let SCREEN_HEIGHT = 0;
@@ -36,7 +38,7 @@ function setup() {
 		POINT_LIST.push(new Point(SCREEN_WIDTH, SCREEN_HEIGHT, MOVE_SPEED, i));
 	}
 
-	frameRate(40);
+	// frameRate(40);
 }
 
 async function draw() {
@@ -56,6 +58,7 @@ async function draw() {
 	pointAlignment = {};
 	pointCohesion = {};
 	avoidMouse = {};
+	avoidWall = {};
 
 	POINT_LIST.forEach((currentPoint, currentIndex) => {
 		// Draw this boid to the screen
@@ -68,7 +71,8 @@ async function draw() {
 		pointSeparation[currentIndex] = getSeparation(currentPoint, boidsInFov);
 		pointAlignment[currentIndex] = getAlignment(boidsInFov);
 		pointCohesion[currentIndex] = getCohesion(currentPoint, boidsInFov);
-		avoidMouse[currentIndex] = awayFromMouse(currentPoint, boidsInFov);
+		avoidMouse[currentIndex] = awayFromMouse(currentPoint);
+		avoidWall[currentIndex] = awayFromWall(currentPoint);
 	});
 
 	// Update Direction & Position
@@ -77,6 +81,7 @@ async function draw() {
 		currentPoint.changeDirection(pointAlignment[currentIndex].x, pointAlignment[currentIndex].y);
 		currentPoint.changeDirection(pointCohesion[currentIndex].x, pointCohesion[currentIndex].y);
 		currentPoint.changeDirection(avoidMouse[currentIndex].x, avoidMouse[currentIndex].y);
+		currentPoint.changeDirection(avoidWall[currentIndex].x, avoidWall[currentIndex].y);
 
 		currentPoint.update();
 	});
@@ -190,8 +195,38 @@ const awayFromMouse = (pointObject) => {
 	};
 
 	let length = Math.sqrt(directionToMove.x ** 2 + directionToMove.y ** 2);
-	directionToMove.x *= 0.1 / length;
-	directionToMove.y *= 0.1 / length;
+	directionToMove.x *= MOUSE_STRENGTH / length;
+	directionToMove.y *= MOUSE_STRENGTH / length;
+
+	return directionToMove;
+}
+
+const awayFromWall = (pointObject) => {
+	let distanceToCheckFrom = 400;
+
+	let distanceToLeftWall = pointObject.position.x;
+	let distanceToRightWall = SCREEN_WIDTH - pointObject.position.x;
+	let distanceToBottomWall = pointObject.position.y;
+	let distanceToTopWall = SCREEN_HEIGHT - pointObject.position.y;
+
+	let directionToMove = { x: 0, y: 0 };
+
+	if (distanceToLeftWall < distanceToCheckFrom) {
+		directionToMove.x +=1;
+	} else if (distanceToRightWall < distanceToCheckFrom) {
+		directionToMove.x -= 1;
+	} else if (distanceToBottomWall < distanceToCheckFrom) {
+		directionToMove.y += 1;
+	} else if (distanceToTopWall < distanceToCheckFrom) {
+		directionToMove.y -= 1;
+	}
+
+	let length = Math.sqrt(directionToMove.x ** 2 + directionToMove.y ** 2);
+
+	if (length !== 0) {
+		directionToMove.x *= (WALL_STRENGTH / Math.min(distanceToLeftWall, distanceToRightWall)) / length;
+		directionToMove.y *= (WALL_STRENGTH / Math.min(distanceToBottomWall, distanceToTopWall)) / length;
+	}
 
 	return directionToMove;
 }
