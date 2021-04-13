@@ -26,6 +26,9 @@ const drawArc = (x, y, w, h, startAngle, stopAngle) => arc(x, SCREEN_HEIGHT - y,
 let pointSeparation = {};
 let pointAlignment = {};
 let pointCohesion = {};
+let avoidMouse = {};
+let avoidWall = {};
+
 
 // Initial Setup
 function setup() {
@@ -38,10 +41,10 @@ function setup() {
 		POINT_LIST.push(new Point(SCREEN_WIDTH, SCREEN_HEIGHT, MOVE_SPEED, i));
 	}
 
-	// frameRate(40);
+	frameRate(60);
 }
 
-async function draw() {
+function draw() {
 	// Draw background & set Rectangle draw mode
 	background(255);
 	rectMode(CENTER);
@@ -325,12 +328,12 @@ class Point {
 		};
 
 		// Generate random starting direction
-		let xDir = -1 + Math.random()*2;
-		let yDir = -1 + Math.random()*2;
-		
+		let xDir = -1 + Math.random() * 2;
+		let yDir = -1 + Math.random() * 2;
+
 		// Convert to a unit vector
-		let length = Math.sqrt(xDir**2 + yDir**2);
-		this.direction = {x: xDir/length, y: yDir/length};
+		let length = Math.sqrt(xDir ** 2 + yDir ** 2);
+		this.direction = { x: xDir / length, y: yDir / length };
 	}
 
 	update() {
@@ -340,11 +343,11 @@ class Point {
 
 		// Handle going off the left & right sides
 		if (this.position.x < 0) this.position.x += this.backgroundSize.x;
-		else if (this.position.x > this.backgroundSize.x-1) this.position.x -= this.backgroundSize.x;
+		else if (this.position.x > this.backgroundSize.x - 1) this.position.x -= this.backgroundSize.x;
 
 		// Handle going off the top and bottom sides
 		if (this.position.y < 0) this.position.y += this.backgroundSize.y;
-		else if (this.position.y > this.backgroundSize.y-1) this.position.y -= this.backgroundSize.y;
+		else if (this.position.y > this.backgroundSize.y - 1) this.position.y -= this.backgroundSize.y;
 	}
 
 	changeDirection(newDirectionX, newDirectionY) {
@@ -352,7 +355,7 @@ class Point {
 		this.direction.y += newDirectionY;
 
 		// Convert new direction to a unit vector
-		let length = Math.sqrt(this.direction.x**2 + this.direction.y**2);
+		let length = Math.sqrt(this.direction.x ** 2 + this.direction.y ** 2);
 		this.direction.x /= length;
 		this.direction.y /= length;
 	}
